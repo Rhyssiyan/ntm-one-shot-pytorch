@@ -5,6 +5,7 @@ from scipy.ndimage import shift,rotate
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage import io, transform
+import cProfile
 def loadTransform(imgPath, s=(0,0), ang=0., size=(20.20)):
     # shift(s) + SmlRotate + resize( (20,20) , (28,28) )
     # optional:BigRotate + horizontal flip(the flip of the character is not the same as the original character)
@@ -15,7 +16,6 @@ def loadTransform(imgPath, s=(0,0), ang=0., size=(20.20)):
     # rotate
     # imgR=rotate(imgS,ang,cval=1) # np.maximum(np.minimum(  whether the type of imgS float or not
     imgR=rotate(imgS,ang,mode='constant',cval=1)
-
     # imgR = np.maximum(np.minimum(rotate(imgS, ang, cval=1),1.),0.)
     # plt.figure()
     # plt.subplot(221)

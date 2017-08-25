@@ -4,7 +4,7 @@ import random
 import numpy as np
 
 from utils import loadTransform, getShuffleImg
-
+from multiprocessing import Pool
 
 class OmniglotDataset(object):
 
@@ -62,8 +62,6 @@ class OmniglotDataset(object):
             epiData = self.getNextEpisode()
             return (self.curIter,epiData)
         raise StopIteration()
-
-    @profile
     def getNextEpisode(self):
         """
         One-hot encoding
@@ -87,13 +85,11 @@ class OmniglotDataset(object):
             shifts= np.random.randint(-self.maxShift,self.maxShift,size=(self.seqLen,2))
             rots  = np.add(np.random.uniform(-self.maxSmlRot,self.maxSmlRot,size=self.seqLen),bigRotate)
 
-            # inputx[i] = np.asarray([np.concatenate((loadTransform(img,shift,rot+bigRotate,self.imgSize).flatten(), labelOneHot)) \
-            #                         for img,shift,rot,labelOneHot in zip(imgs,shifts,rots,labelsOneHot)])
-            # with Pool(processes=2) as p:
-                # p.starmap(self.cmbAndTransImg,zip(imgs,shifts,rots,labelsOneHot))
             inputx[i] = np.asarray([np.concatenate((loadTransform(img,shift,rot+bigRotate,self.imgSize).flatten(), labelOneHot)) \
-                                     for img,shift,rot,labelOneHot in zip(imgs,shifts,rots,labelsOneHot)])
-            labels[i]    = np.asarray(labelsPerBatch)
+                                    for img,shift,rot,labelOneHot in zip(imgs,shifts,rots,labelsOneHot)])
+            labels[i] = np.asarray(labelsPerBatch)
+                # inputx[i] = np.asarray([np.concatenate((loadTransform(img,shift,rot+bigRotate,self.imgSize).flatten(), labelOneHot)) \
+            #                          for img,shift,rot,labelOneHot in zip(imgs,shifts,rots,labelsOneHot)])
         return inputx,labels
 
 #TODO:
