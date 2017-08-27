@@ -1,11 +1,0 @@
---2017-08-22 19:49:57--  https://github.com/brendenlake/omniglot/blob/master/python/images_evaluation.zip
-正在解析主机 github.com (github.com)... 192.30.255.112, 192.30.255.113
-正在连接 github.com (github.com)|192.30.255.112|:443... 已连接。
-已发出 HTTP 请求，正在等待回应... 200 OK
-长度： 未指定 [text/html]
-正在保存至: “images_evaluation.zip”
-
-images_evaluation.zip                                [ <=>                                                                                                       ]  11.04K  1.13 B/s               images_evaluation.zip                                [  <=>                                                                                                      ]  31.48K  3.23 B/s    in 2h 46m  
-
-2017-08-22 22:36:05 (3.23 B/s) - “images_evaluation.zip” 已保存 [32238]
-

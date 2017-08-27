@@ -1,10 +1,8 @@
+from utils import getShuffleImg, loadTransform
 import os
 import random
-
 import numpy as np
 
-from utils import loadTransform, getShuffleImg
-from multiprocessing import Pool
 
 class OmniglotDataset(object):
 
@@ -16,7 +14,7 @@ class OmniglotDataset(object):
                  maxShift=10,
                  maxIter=None,
                  maxSmlRot=15,# should the unit of rotation be radian
-                 projAbsPath="/home/lenovo/dev/projects/pytorch/ntm-one-shot"
+                 projAbsPath=None
                  ):
         """
 
@@ -30,8 +28,10 @@ class OmniglotDataset(object):
         :param maxSmlRot:
         :param projAbsPath:
         """
+        # TODO:
+        # meta-train meta-validation meta-test
+        # change memory module
         super(OmniglotDataset,self).__init__()
-        #config
         self.imgSize    = size
         self.pixelNum   = self.imgSize[0] * self.imgSize[1]
         self.curIter    = 0
@@ -41,10 +41,10 @@ class OmniglotDataset(object):
         self.nbSmpsPerCls=nbSmpsPerCls
         self.maxShift    =maxShift
         self.maxSmlRot   =maxSmlRot
-        self.projAbsPath =projAbsPath
+        self.projAbsPath =os.getcwd()
         self.seqLen      =self.nbSmpsPerCls * self.nbClsPerEpi
         self.maxIter     =maxIter
-        self.dataAbsPath = os.path.join(projAbsPath,"data")
+        self.dataAbsPath = os.path.join(self.projAbsPath,"data")
         self.folder      = os.path.join(self.dataAbsPath,folderName)
         self.fileList    = [os.path.join(self.folder,subfolder,subsubfolder) for subfolder in os.listdir(self.folder) \
                             for subsubfolder in os.listdir(os.path.join(self.folder,subfolder))]
@@ -64,17 +64,18 @@ class OmniglotDataset(object):
         raise StopIteration()
     def getNextEpisode(self):
         """
+        randomly sample classes of episode
+        randomly sample from classes compose batch_size * seq_len * img_vec
+        For generality, the file path in fileList would be relative path
         One-hot encoding
         :return:
         """
-        # randomly sample classes of episode
-        # randomly sample from classes compose batch_size * seq_len * img_vec
-        # For generality, the file path in fileList would be relative path
+
 
         clsFolders=random.sample(self.fileList,self.nbClsPerEpi) #determine which classes to sample
 
-        inputx = np.zeros((self.batchSize, self.seqLen,self.pixelNum+self.nbClsPerEpi), dtype=float)
-        labels = np.zeros((self.batchSize, self.seqLen), dtype=int)
+        inputx = np.zeros((self.seqLen, self.batchSize,self.pixelNum+self.nbClsPerEpi), dtype=float)
+        labels = np.zeros((self.seqLen, self.batchSize), dtype=int)
         for i in range(self.batchSize):
             # bigRotate = random.randint(0, 3) * 90
             bigRotate=0
@@ -85,16 +86,14 @@ class OmniglotDataset(object):
             shifts= np.random.randint(-self.maxShift,self.maxShift,size=(self.seqLen,2))
             rots  = np.add(np.random.uniform(-self.maxSmlRot,self.maxSmlRot,size=self.seqLen),bigRotate)
 
-            inputx[i] = np.asarray([np.concatenate((loadTransform(img,shift,rot+bigRotate,self.imgSize).flatten(), labelOneHot)) \
+            inputx[:,i,:] = np.asarray([np.concatenate((loadTransform(img,shift,rot+bigRotate,self.imgSize).flatten(), labelOneHot)) \
                                     for img,shift,rot,labelOneHot in zip(imgs,shifts,rots,labelsOneHot)])
-            labels[i] = np.asarray(labelsPerBatch)
+            labels[:,i] = np.asarray(labelsPerBatch)
                 # inputx[i] = np.asarray([np.concatenate((loadTransform(img,shift,rot+bigRotate,self.imgSize).flatten(), labelOneHot)) \
             #                          for img,shift,rot,labelOneHot in zip(imgs,shifts,rots,labelsOneHot)])
         return inputx,labels
 
-#TODO:
-# meta-train meta-validation meta-test
-# change memory module
+
     def cmbAndTransImg(self,img,shift,rot, labelOneHot):
         # return np.asarray(np.concatenate(loadTransform(img,shift,rot,self.imgSize), labelOneHot))
         x=loadTransform(img, shift, rot, self.imgSize).flatten()

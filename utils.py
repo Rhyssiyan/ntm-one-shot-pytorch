@@ -3,9 +3,8 @@ import random
 from scipy.misc import imread,imresize,imshow
 from scipy.ndimage import shift,rotate
 import numpy as np
-import matplotlib.pyplot as plt
-from skimage import io, transform
-import cProfile
+
+# import matplotlib.pyplot as plt
 def loadTransform(imgPath, s=(0,0), ang=0., size=(20.20)):
     # shift(s) + SmlRotate + resize( (20,20) , (28,28) )
     # optional:BigRotate + horizontal flip(the flip of the character is not the same as the original character)
