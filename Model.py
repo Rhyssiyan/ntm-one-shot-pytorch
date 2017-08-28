@@ -4,7 +4,7 @@ import torch.tensor
 from torch.autograd import  Variable
 class NTMModel(nn.Module):
 
-    def __init__(self, _Nway, _InputDim, _BatchSize):
+    def __init__(self, _Nway, _InputDim, _BatchSize, _GPUID):
         super(NTMModel, self).__init__()
         # arguments:
         self.decayGamma=0.99
@@ -27,13 +27,13 @@ class NTMModel(nn.Module):
         self.softM  = nn.Softmax()
 
         # Variable default requires_grad=False
-        self.M_tm1  = Variable(torch.FloatTensor(self.batchSize, self.memSize[0], self.memSize[1]))
-        self.h_tm1  = Variable(torch.FloatTensor(self.batchSize, self.hiddDim))
-        self.c_tm1  = Variable(torch.FloatTensor(self.batchSize, self.hiddDim))
+        self.M_tm1  = Variable(torch.FloatTensor(self.batchSize, self.memSize[0], self.memSize[1])).cuda(_GPUID)
+        self.h_tm1  = Variable(torch.FloatTensor(self.batchSize, self.hiddDim)).cuda(_GPUID)
+        self.c_tm1  = Variable(torch.FloatTensor(self.batchSize, self.hiddDim)).cuda(_GPUID)
 
-        self.wr_tm1 = Variable(torch.FloatTensor(self.batchSize, self.nbRead, self.memSize[0]))
-        self.wu_tm1 = Variable(torch.FloatTensor(self.batchSize, self.memSize[0]))
-        self.wlu_tm1= Variable(torch.FloatTensor(self.batchSize, self.memSize[0]))
+        self.wr_tm1 = Variable(torch.FloatTensor(self.batchSize, self.nbRead, self.memSize[0])).cuda(_GPUID)
+        self.wu_tm1 = Variable(torch.FloatTensor(self.batchSize, self.memSize[0])).cuda(_GPUID)
+        self.wlu_tm1= Variable(torch.FloatTensor(self.batchSize, self.memSize[0])).cuda(_GPUID)
 
 
 
@@ -103,7 +103,7 @@ class NTMModel(nn.Module):
 
             #TODO: It's only the result at time i
             ntm_out_i = self.outFc(torch.cat([self.h_t,self.r_t],dim=1))
-            ntm_out_i = self.softM(ntm_out_i)
+            ntm_out_i = self.softM(ntm_out_i) #batchSize*nbClsPerEpi
             y.append(ntm_out_i)
             # ntm_out_i = torch.unsqueeze(ntm_out_i, dim=0)
             # if i==0:
@@ -115,7 +115,8 @@ class NTMModel(nn.Module):
             self.wr_tm1 = self.wr_t.detach()
             self.ww_tm1 = self.ww_t.detach() #If don't add detach what is the result
             self.wu_tm1   = self.decayGamma*self.wu_tm1 + torch.sum(self.wr_tm1 + self.ww_tm1, dim=1) #batch*slots
-            self.kthSmall,_= torch.kthvalue(self.wu_tm1, k=self.nbRead, dim=1) #batch*1se
+            self.topkVal,self.topkInd= torch.topk(self.wu_tm1, k=self.nbRead, dim=1, largest=False) #batch*1se
+            self.kthSmall=self.topkVal[:,-1]
             self.wlu_tm1 = torch.le(self.wu_tm1, torch.unsqueeze(self.kthSmall,dim=1)).float().detach()
             self.M_tm1 = self.M.detach()
         return y

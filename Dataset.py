@@ -5,7 +5,7 @@ import numpy as np
 
 
 class OmniglotDataset(object):
-
+    # @profile
     def __init__(self,folderName,
                  batchSize=16,
                  nbClsPerEpi=5,
@@ -58,11 +58,12 @@ class OmniglotDataset(object):
 
     def next(self):
         if self.maxIter is None or self.curIter<self.maxIter:
-            self.curIter += 1
-            epiData = self.getNextEpisode()
+            self.curIter=self.curIter+1
+            epiData = self.getNextEpisode(self.fileList)
             return (self.curIter,epiData)
         raise StopIteration()
-    def getNextEpisode(self):
+    # @profile
+    def getNextEpisode(self, fileList):
         """
         randomly sample classes of episode
         randomly sample from classes compose batch_size * seq_len * img_vec
@@ -72,7 +73,7 @@ class OmniglotDataset(object):
         """
 
 
-        clsFolders=random.sample(self.fileList,self.nbClsPerEpi) #determine which classes to sample
+        clsFolders=random.sample(fileList,self.nbClsPerEpi) #determine which classes to sample
 
         inputx = np.zeros((self.seqLen, self.batchSize,self.pixelNum+self.nbClsPerEpi), dtype=float)
         labels = np.zeros((self.seqLen, self.batchSize), dtype=int)
@@ -149,3 +150,30 @@ class OmniglotDataset(object):
 #             self.inputx[i] = np.asarray([np.concatenate((loadTransform(img,shift,rot+bigRotate,self.imgSize).flatten(), labelOneHot)) \
 #                                      for img,shift,rot,labelOneHot in zip(imgs,shifts,rots,labelsOneHot)])
 #             self.labels[i]    = np.asarray(labelsPerBatch)
+    def generateSmallTestSet(self,kShot,Nway):
+        testEpisodesN=10
+        folder      = os.path.join(self.dataAbsPath,'evaluation')
+        fileList    = [os.path.join(self.folder,subfolder,subsubfolder) for subfolder in os.listdir(self.folder) \
+                            for subsubfolder in os.listdir(os.path.join(self.folder,subfolder))]
+        testx=[]
+        testy=[]
+        for epi in range(testEpisodesN):
+            clsFolders=random.sample(fileList, Nway) #determine which classes to sample
+
+            inputx = np.zeros((self.seqLen, self.batchSize,self.pixelNum+self.nbClsPerEpi), dtype=float)
+            labels = np.zeros((self.seqLen, self.batchSize), dtype=int)
+            for i in range(self.batchSize):
+                # bigRotate = random.randint(0, 3) * 90
+                labelsAndImgs = getShuffleImg(clsFolders, self.nbSmpsPerCls)
+                labelsPerBatch, imgs  = zip(*labelsAndImgs)
+                labelsOneHot=np.zeros((self.seqLen,self.nbClsPerEpi), dtype=float)
+                labelsOneHot[range(1,5*kShot), labelsPerBatch[2:5*kShot+1]]=1
+
+                inputx[:,i,:] = np.asarray([np.concatenate((loadTransform(img,(0,0),0,self.imgSize,True).flatten(), labelOneHot)) \
+                                        for img,labelOneHot in zip(imgs,labelsOneHot)])
+                labels[:,i] = np.asarray(labelsPerBatch)
+            testx.append(inputx)
+            testy.append(labels)
+        #save data into test.npy
+        np.savez('test_k{0}_N{1}.npy'.format(kShot, Nway),testx,testy)
+        return testx,testy
